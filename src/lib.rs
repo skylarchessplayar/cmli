@@ -51,6 +51,7 @@ pub mod instr;
 pub mod intern;
 pub mod mach;
 pub mod mem;
+pub mod obj;
 pub mod target;
 pub mod traits;
 

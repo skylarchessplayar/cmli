@@ -12,6 +12,7 @@ cmli-proc-macro.path = "cmli-proc-macro"
 paste = "1.0.15"
 bitflags = "2.10.0"
 bitfield-struct = "0.13.0"
+bytemuck = { version = "1.25", features = ["derive", "min_const_generics"] }
 
 [workspace]
 members = ["cmli-proc-macro"]
