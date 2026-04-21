@@ -25,5 +25,7 @@ default = ["default-archs","default-formats"]
 default-archs = ["x86"]
 all-archs = ["default-archs", "skyarch"]
 
-default-formats = []
+elf = []
+
+default-formats = ["elf"]
 all-formats = ["default-formats"]
