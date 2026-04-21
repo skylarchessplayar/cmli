@@ -1,4 +1,5 @@
 pub mod context;
+pub mod primitives;
 
 use context::BinContext;
 
@@ -11,6 +12,7 @@ pub struct BinFieldError {
 
 pub trait BinField<'a> {
     type ValidateParams: ?Sized;
+    type Data;
 
     fn load(off: usize, context: &BinContext<'a>) -> Self;
     fn validate(
@@ -18,6 +20,7 @@ pub trait BinField<'a> {
         params: &Self::ValidateParams,
         context: &mut BinContext<'_>,
     ) -> Result<(), BinFieldError>;
+    fn read(&self, context: &BinContext<'a>) -> Self::Data;
 }
 
 pub fn load_pod_bin_field<'a, T: Pod>(off: usize, context: &BinContext<'a>) -> &'a T {
@@ -30,6 +33,7 @@ pub struct Magic<const N: usize>(pub [u8; N]);
 
 impl<'a, const N: usize> BinField<'a> for &'a Magic<N> {
     type ValidateParams = [[u8; N]];
+    type Data = ();
 
     fn load(off: usize, context: &BinContext<'a>) -> Self {
         load_pod_bin_field(off, context)
@@ -44,6 +48,8 @@ impl<'a, const N: usize> BinField<'a> for &'a Magic<N> {
             Ok(())
         }
     }
+
+    fn read(&self, _: &BinContext<'a>) {}
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Pod, Zeroable)]
@@ -52,6 +58,7 @@ pub struct EndianFlag<const LE: u8, const BE: u8>(pub u8);
 
 impl<'a, const LE: u8, const BE: u8> BinField<'a> for &'a EndianFlag<LE, BE> {
     type ValidateParams = ();
+    type Data = ();
 
     fn load(off: usize, context: &BinContext<'a>) -> Self {
         load_pod_bin_field(off, context)
@@ -70,6 +77,8 @@ impl<'a, const LE: u8, const BE: u8> BinField<'a> for &'a EndianFlag<LE, BE> {
             })
         }
     }
+
+    fn read(&self, _: &BinContext<'a>) {}
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Pod, Zeroable)]
@@ -78,6 +87,7 @@ pub struct Pad<const N: usize>(pub [u8; N]);
 
 impl<'a, const N: usize> BinField<'a> for &'a Pad<N> {
     type ValidateParams = ();
+    type Data = ();
 
     fn load(off: usize, context: &BinContext<'a>) -> Self {
         load_pod_bin_field(off, context)
@@ -87,6 +97,8 @@ impl<'a, const N: usize> BinField<'a> for &'a Pad<N> {
         // todo: possibly ensure padding sections are empty? not doing for not because depends on format
         Ok(())
     }
+
+    fn read(&self, _: &BinContext<'a>) {}
 }
 
 #[cfg(test)]
