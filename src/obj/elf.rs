@@ -301,7 +301,10 @@ impl<'a, R: io::Read + io::Seek> SectionReader for ElfSectionReader<'a, R> {
     }
 
     fn mem_size(&mut self) -> u64 {
-        todo!()
+        self.reader
+            .seek(io::SeekFrom::Start(self.off + self.class.either(20, 32)))
+            .unwrap();
+        read_addr(self.reader, self.class, self.endian).unwrap()
     }
 
     fn data(&mut self) -> Box<[u8]> {
@@ -309,13 +312,13 @@ impl<'a, R: io::Read + io::Seek> SectionReader for ElfSectionReader<'a, R> {
             .seek(io::SeekFrom::Start(self.off + self.class.either(16, 24)))
             .unwrap(); // todo: report io error
         let off = read_addr(self.reader, self.class, self.endian).unwrap();
-        let size = read_addr(self.reader, self.class, self.endian).unwrap();
+        let size = read_addr(self.reader, self.class, self.endian).unwrap(); // todo: verify section isn't SHT_NOBITS
 
         let mut buf = Box::new_uninit_slice(size.try_into().unwrap());
         let mut borrowed_buf = BorrowedBuf::from(&mut *buf);
         self.reader.seek(io::SeekFrom::Start(off)).unwrap();
         self.reader.read_buf_exact(borrowed_buf.unfilled()).unwrap();
-        
+
         // SAFETY: the read_buf_exact call has filled all bytes by function contract
         unsafe { buf.assume_init() }
     }
