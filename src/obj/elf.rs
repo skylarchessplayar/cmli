@@ -301,6 +301,7 @@ impl<'a, R: io::Read + io::Seek> SectionReader for ElfSectionReader<'a, R> {
     }
 
     fn mem_size(&mut self) -> u64 {
+        // todo: return 0 for non-alloc sections
         self.reader
             .seek(io::SeekFrom::Start(self.off + self.class.either(20, 32)))
             .unwrap();
@@ -350,6 +351,7 @@ impl<'a, R> ElfSectionVisitor<'a, R> {
 
 impl<'a, R: io::Read + io::Seek> SectionVisitor for ElfSectionVisitor<'a, R> {
     fn accept_next<'b>(&'b mut self) -> Option<impl SectionReader + 'b> {
+        // todo: skip sections where we emit the data elsewhere (relocations, etc)
         if self.remaining_sections == 0 {
             return None;
         }
