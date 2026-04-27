@@ -391,7 +391,7 @@ impl<R: io::Read + io::Seek> ObjectFileReader for ElfReader<R> {
 mod test {
     use std::io::Cursor;
 
-    use crate::obj::{ObjectFileReader, SectionReader, SectionVisitor, elf::ElfReader};
+    use crate::obj::{ObjectFile, elf::ElfReader};
 
     #[test]
     fn read_test() {
@@ -399,13 +399,8 @@ mod test {
             u128,
             "../../tests/x86_64-unknown-linux-gnu/test.o"
         ));
-        let mut elf_reader = ElfReader::new(data).unwrap();
-        {
-            let mut sections = elf_reader.sections();
-            while let Some(mut section) = sections.accept_next() {
-                println!("{:?}", section.name());
-            }
-        }
-        todo!("{elf_reader:?}");
+        let elf_reader = ElfReader::new(data).unwrap();
+        let object = ObjectFile::from_reader(elf_reader);
+        todo!("{object:?}");
     }
 }
