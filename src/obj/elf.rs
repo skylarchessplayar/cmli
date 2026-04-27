@@ -170,6 +170,7 @@ pub struct ElfReader<R> {
     shnum: u16,
     endian: Endian,
     class: Class,
+    raw_mode: bool,
     strtab: Option<Box<[u8]>>,
 }
 
@@ -234,6 +235,7 @@ impl<R: io::Read + io::Seek> ElfReader<R> {
             shnum,
             endian,
             class,
+            raw_mode: true,
             strtab: None,
         };
 
@@ -253,6 +255,8 @@ impl<R: io::Read + io::Seek> ElfReader<R> {
             }
             None
         })();
+
+        result.raw_mode = false;
 
         Ok(result)
     }
@@ -333,6 +337,7 @@ struct ElfSectionVisitor<'a, R> {
     class: Class,
     endian: Endian,
     strtab: Option<&'a [u8]>,
+    raw_mode: bool,
 }
 
 impl<'a, R> ElfSectionVisitor<'a, R> {
@@ -345,26 +350,34 @@ impl<'a, R> ElfSectionVisitor<'a, R> {
             class: elf_reader.class,
             endian: elf_reader.endian,
             strtab: elf_reader.strtab.as_deref(),
+            raw_mode: elf_reader.raw_mode,
         }
     }
 }
 
 impl<'a, R: io::Read + io::Seek> SectionVisitor for ElfSectionVisitor<'a, R> {
     fn accept_next<'b>(&'b mut self) -> Option<impl SectionReader + 'b> {
-        // todo: skip sections where we emit the data elsewhere (relocations, etc)
-        if self.remaining_sections == 0 {
-            return None;
+        loop {
+            if self.remaining_sections == 0 {
+                return None;
+            }
+            let off = self.cur_section_off;
+            self.remaining_sections -= 1;
+            self.cur_section_off += self.step as u64;
+
+            self.reader.seek(io::SeekFrom::Start(off + 4)).unwrap(); // todo: io error
+            let sh_type = read_word(self.reader, self.endian).unwrap();
+            if self.raw_mode || sh_type == 1 {
+                // sh_type == 1 is PROGBITS; print all sections if in raw mode
+                return Some(ElfSectionReader {
+                    reader: self.reader,
+                    off,
+                    class: self.class,
+                    endian: self.endian,
+                    strtab: self.strtab,
+                });
+            }
         }
-        let off = self.cur_section_off;
-        self.remaining_sections -= 1;
-        self.cur_section_off += self.step as u64;
-        Some(ElfSectionReader {
-            reader: self.reader,
-            off,
-            class: self.class,
-            endian: self.endian,
-            strtab: self.strtab,
-        })
     }
 }
 
