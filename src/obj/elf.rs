@@ -301,11 +301,22 @@ impl<'a, R: io::Read + io::Seek> SectionReader for ElfSectionReader<'a, R> {
     }
 
     fn flags(&mut self) -> SectionFlags {
-        todo!()
+        self.reader.seek(io::SeekFrom::Start(self.off + 8)).unwrap();
+        let raw_flags = read_addr(self.reader, self.class, self.endian).unwrap();
+        let mut result = SectionFlags::empty();
+        result.set(SectionFlags::WRITE, raw_flags & 0x1 != 0);
+        result.set(SectionFlags::EXEC, raw_flags & 0x4 != 0);
+        result
     }
 
     fn mem_size(&mut self) -> u64 {
-        // todo: return 0 for non-alloc sections
+        // read flags
+        self.reader.seek(io::SeekFrom::Start(self.off + 8)).unwrap();
+        let raw_flags = read_addr(self.reader, self.class, self.endian).unwrap();
+        if raw_flags & 0x2 == 0 { // !ALLOC
+            return 0;
+        }
+        
         self.reader
             .seek(io::SeekFrom::Start(self.off + self.class.either(20, 32)))
             .unwrap();

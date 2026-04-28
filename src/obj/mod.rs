@@ -1,3 +1,4 @@
+use core::fmt;
 use std::borrow::Cow;
 
 use bitflags::bitflags;
@@ -6,6 +7,15 @@ use crate::intern::Symbol;
 
 #[cfg(feature = "elf")]
 pub mod elf;
+
+// todo: move to a util module
+struct LargeArray(usize);
+
+impl fmt::Debug for LargeArray {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[... ({} bytes) ...]", self.0)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ObjectFile {
@@ -31,7 +41,7 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Section {
     pub name: Option<Symbol>,
     pub flags: SectionFlags,
@@ -54,6 +64,17 @@ impl Section {
             mem_size,
             data,
         }
+    }
+}
+
+impl fmt::Debug for Section {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Section")
+            .field("name", &self.name)
+            .field("flags", &self.flags)
+            .field("mem_size", &self.mem_size)
+            .field("data", &LargeArray(self.data.len()))
+            .finish()
     }
 }
 
